@@ -133,13 +133,16 @@ class Zombie:
         self.loc_no = (self.loc_no + 1) % len(self.patrol_locations)
         return BehaviorTree.SUCCESS
 
-    def compare_ball_number_high(self, boy):
+    def compare_ball_number_high(self):
+        if common.boy.ball_count < self.ball_count:
+            return BehaviorTree.SUCCESS
+        return BehaviorTree.FAIL
+
+
+    def compare_ball_number_low(self):
         pass
 
-    def compare_ball_number_low(self, boy):
-        pass
-
-    def escape_to_boy(self, boy):
+    def escape_to_boy(self):
         pass
 
     def build_behavior_tree(self):
