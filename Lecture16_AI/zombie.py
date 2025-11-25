@@ -99,6 +99,12 @@ class Zombie:
         self.x += distance * math.cos(self.dir)
         self.y += distance * math.sin(self.dir)
 
+    def move_little_opposite_to(self, tx, ty):
+        self.dir = math.atan2(ty - self.y, tx - self.x)
+        distance = RUN_SPEED_PPS * game_framework.frame_time
+        self.x -= distance * math.cos(self.dir)
+        self.y -= distance * math.sin(self.dir)
+
     def move_to(self, r=0.5):
         self.state = 'Walk'
         self.move_little_to(self.tx, self.ty)
@@ -122,7 +128,7 @@ class Zombie:
     def move_to_boy(self, r=0.5):
         self.state = 'Walk'
         self.move_little_to(common.boy.x, common.boy.y)
-        if self.distance_less_than(common.boy.x, common.boy.y, self.x, self.y, r):
+        if self.distance_less_than(common.boy.x, common.boy.y, self.x, self.y, self.dir):
             return BehaviorTree.SUCCESS
         else:
             return BehaviorTree.RUNNING
@@ -145,24 +151,29 @@ class Zombie:
         return BehaviorTree.FAIL
 
     def escape_to_boy(self):
-        pass
+        self.state = 'Walk'
+        self.move_little_opposite_to(common.boy.x, common.boy.y)
+        if self.distance_less_than(common.boy.x, common.boy.y, self.x, self.y, self.dir):
+            return BehaviorTree.SUCCESS
+        else:
+            return BehaviorTree.RUNNING
 
     def build_behavior_tree(self):
         a1 = Action('Set target location', self.set_target_location, 1000, 1000)
         a2 = Action('Move to', self.move_to)
-        root = move_to_target_location = Sequence('Move to target location', a1, a2)
-
         a3 = Action('Set random location', self.set_random_location)
-        root = wander = Sequence('Wander', a3, a2)
-        c2 = Condition('소년보다 공을 많이 가지고 있나?', self.compare_ball_number_high)
-        c3 = Condition('소년보다 공을 적게 가지고 있나?', self.compare_ball_number_low)
         a4 = Action('소년한테 접근', self.move_to_boy)
         a5 = Action('소년한테서 멀어지기', self.escape_to_boy)
+
+        c1 = Condition('소년이 근처에 있는가?', self.if_boy_nearby, 7)
+        c2 = Condition('소년보다 공을 많이 가지고 있나?', self.compare_ball_number_high)
+        c3 = Condition('소년보다 공을 적게 가지고 있나?', self.compare_ball_number_low)
+
+        root = move_to_target_location = Sequence('Move to target location', a1, a2)
+        root = wander = Sequence('Wander', a3, a2)
         root = chase_boy = Sequence('소년을 추적', c2, a4)
         root = escape_boy = Sequence('소년한테서 도망', c3, a5)
         root = chase_or_escape = Selector('추적 또는 도망', chase_boy, escape_boy)
-
-        c1 = Condition('소년이 근처에 있는가?', self.if_boy_nearby, 7)
         root = nearby_boy = Sequence('is nearby boy exist?', c1, chase_or_escape)
 
 
